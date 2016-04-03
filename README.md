@@ -45,6 +45,41 @@ Current instructions. Apache Mesos and Apache Kafka must be running.
 ## TODO
 LOTS TO DO
 
+### Overall
+- Get Graddle or Maven working to pull in the dependencies
+
+### Per Processor Framework
+- Load configuration from zookeeper
+- Update to use executor
+- Task Reconciliation
+- Failure modes
+- Explore more robust tracking model
+- Calculate metrics
+- Implement Health Checks
+- Integrate FluentD
+- Separate the INI type information from the processor configuration
+
+### Executor
+- Complete docker options supported and update JSON Configuration 
+- Language? Try Go!
+- Consider having the executor send the output message to Kafka
+- Figure out how to run the executor as a docker
+- Look at the docker remote API
+
+### Meta Framework
+- Write basic framework to load configuration and start “per-processor” frameworks in Marathon
+- REST API to get and update configuration
+- Write in? Python? Go?
+- List for changes in the configuration. On a change to a processor then restart the “per-processor” framework
+- Implement Health Checks
+- Integrate FluentD
+
+###User Interface
+- We need one! 
+- Configuration Interface (read / write)
+- Metrics / Tracking Interface
+
+
 ## Dependancies
 
 Gradle / Maven is not yet setup so until then please just get the necessary dependancies manually.
