@@ -14,9 +14,6 @@ import org.apache.mesos.Protos.TaskInfo;
 
 public class MyExecutor implements Executor {
 
-	private ExecutorInfo executorInfo;
-	private FrameworkInfo frameworkInfo;
-	private SlaveInfo slaveInfo;
 	private Map<String, ProcessRunner> runningTasks = new ConcurrentHashMap<>();
 	
 	

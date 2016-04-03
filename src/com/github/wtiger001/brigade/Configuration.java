@@ -102,29 +102,6 @@ public class Configuration {
 		}
 	}
 
-	private static double dbl(JSONObject obj, String name, double defaultValue) {
-		if (obj.has(name) && obj.get(name) != null) {
-			return obj.getDouble(name);
-		} else {
-			return defaultValue;
-		}
-	}
-
-	private static class Condition {
-		public Condition(String conditionStr) {
-			if (conditionStr.startsWith("$.") == false) {
-				throw new RuntimeException("Must start with $.");
-			}
-
-		}
-
-		public boolean eval(String json) {
-
-			return true;
-		}
-
-	}
-
 	public Processor getProcessor(String processorName) {
 		for (Processor p : processors) {
 			if (p.name.equalsIgnoreCase(processorName)) {

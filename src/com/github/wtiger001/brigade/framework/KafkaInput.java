@@ -1,12 +1,11 @@
 package com.github.wtiger001.brigade.framework;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -144,14 +143,14 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 			System.out.println("RECEIVED RESPONSE ");
 			System.out.println(response);
 			
-			if ( processor.output != null) {
-				framework.getOutput().post(processor.output, response);
-			}
+			framework.getOutput().post(response);
 			
 			break;
 		case TASK_LOST:
 			//TODO Put at the front of the queue
 			System.out.println("TASK LOST <DETAILS>");
+			break;
+		default:
 			break;
 		}
 	}

@@ -57,14 +57,6 @@ public class Processor {
 		return json.toString();
 	}
 
-	private static int intg(JSONObject obj, String name, int defaultValue) {
-		if (obj.has(name) && obj.get(name) != null) {
-			return obj.getInt(name);
-		} else {
-			return defaultValue;
-		}
-	}
-
 	private static double dbl(JSONObject obj, String name, double defaultValue) {
 		if (obj.has(name) && obj.get(name) != null) {
 			return obj.getDouble(name);

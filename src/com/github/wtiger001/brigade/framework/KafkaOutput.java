@@ -15,15 +15,11 @@ import com.github.wtiger001.brigade.Processor;
 public class KafkaOutput implements Runnable {
 
 	private final Processor processor;
-	private final Configuration cfg;
-	private final Framework framework;
 	private final BlockingQueue<ProducerRecord<String, String>> requests;
 	private final AtomicBoolean shutdown = new AtomicBoolean(false);
 	private final KafkaProducer<String, String> producer;
 
 	public KafkaOutput(Framework framework, Configuration cfg, Processor processor) {
-		this.framework = framework;
-		this.cfg = cfg;
 		this.processor = processor;
 		this.requests = new LinkedBlockingQueue<>();
 		
@@ -40,8 +36,10 @@ public class KafkaOutput implements Runnable {
 		producer = new KafkaProducer<>(props);
 	}
 	
-	public void post(String topic, String message) {
-		requests.add(new ProducerRecord<String, String>(topic, message));
+	public void post(String message) {
+		if (processor.output != null && processor.output.isEmpty() == false) {
+			requests.add(new ProducerRecord<String, String>(processor.output, message));
+		}
 	}
 
 	@Override

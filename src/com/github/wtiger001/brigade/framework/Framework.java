@@ -13,17 +13,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.mesos.MesosSchedulerDriver;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.CommandInfo;
-import org.apache.mesos.Protos.ContainerInfo;
-import org.apache.mesos.Protos.ContainerInfo.DockerInfo;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkID;
+import org.apache.mesos.Protos.Label;
 import org.apache.mesos.Protos.Labels;
 import org.apache.mesos.Protos.Status;
 import org.apache.mesos.Scheduler;
-import org.apache.mesos.Protos.Label;
 
 import com.github.wtiger001.brigade.Configuration;
+import com.github.wtiger001.brigade.Processor;
 import com.google.protobuf.ByteString;
 import com.netflix.fenzo.SchedulingResult;
 import com.netflix.fenzo.TaskAssignmentResult;
@@ -39,12 +38,10 @@ public class Framework {
 	private Thread kafkaInputThread;
 	private Thread frameworkThread;
 	
-	private final Configuration cfg;
 	private final BlockingQueue<VirtualMachineLease> leasesQueue;
 	private final MesosSchedulerDriver mesosSchedulerDriver;
 	private final TaskScheduler scheduler;
 	private final AtomicReference<MesosSchedulerDriver> ref = new AtomicReference<>();
-	private final String processorName;
 	private final KafkaInput input;
 	private final KafkaOutput output;
 	private final AtomicBoolean isShutdown = new AtomicBoolean(false);
@@ -53,10 +50,9 @@ public class Framework {
 
 	private Thread kakfaOutputThread;
 
-	public Framework(String processorName, Configuration cfg) {
-		this.processorName = processorName;
-		this.cfg = cfg;
-    	
+	public Framework(String processorName, Configuration configuration) {
+		Processor processor = configuration.getProcessor(processorName);
+		
         this.leasesQueue = new LinkedBlockingQueue<>();
         
         scheduler = new TaskScheduler.Builder()
@@ -71,19 +67,19 @@ public class Framework {
                 .build();
 		
 		// Construct the Framework
-		String frameworkName = cfg.frameworkName + "_" + processorName + "_" + VERSION;
+		String frameworkName = configuration.frameworkName + "_" + processorName + "_" + VERSION;
 		Protos.FrameworkInfo framework = Protos.FrameworkInfo.newBuilder()
                 .setName(frameworkName)
                 .setUser("")
                 .build();
 		
 		// Build the Datasource
-        input = new KafkaInput(this, cfg, cfg.getProcessor(processorName));
-        output = new KafkaOutput(this, cfg, cfg.getProcessor(processorName));
+        input = new KafkaInput(this, configuration, processor);
+        output = new KafkaOutput(this, configuration, processor);
 		
 		// Build the Scheduler
 		Scheduler mesosScheduler = new MesosScheduler(scheduler, leasesQueue, input, this);
-        mesosSchedulerDriver = new MesosSchedulerDriver(mesosScheduler, framework, cfg.mesosMaster);
+        mesosSchedulerDriver = new MesosSchedulerDriver(mesosScheduler, framework, configuration.mesosMaster);
         ref.set(mesosSchedulerDriver);
 	}
 	
@@ -185,14 +181,14 @@ public class Framework {
                 .setValue(t.getId())
                 .build();
         
-        DockerInfo docker = DockerInfo.newBuilder()
-        		.setImage(t.getProcessor().docker)
-        		.build();
-        
-        ContainerInfo container = ContainerInfo.newBuilder()
-        		.setDocker(docker)
-        		.setType(ContainerInfo.Type.DOCKER)
-        		.build();
+//        DockerInfo docker = DockerInfo.newBuilder()
+//        		.setImage(t.getProcessor().docker)
+//        		.build();
+//        
+//        ContainerInfo container = ContainerInfo.newBuilder()
+//        		.setDocker(docker)
+//        		.setType(ContainerInfo.Type.DOCKER)
+//        		.build();
         
         ExecutorID eid = ExecutorID.newBuilder() 
                 .setValue(t.getId())

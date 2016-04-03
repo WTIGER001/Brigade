@@ -2,20 +2,13 @@ package com.github.wtiger001.brigade.framework;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.TopicPartition;
-
-import com.github.wtiger001.brigade.Processor;
 
 public class KafkaTopicTracker {
 	private final String topic;
-	private KafkaConsumer<String, String> consumer;
 	private HashMap<TopicPartition, KafkaMessageTracker> partitionTrackers;
 	private HashMap<String, KafkaMessageTracker> taskIndex;
 	private KafkaInput source;
