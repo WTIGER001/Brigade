@@ -21,11 +21,26 @@ import org.json.JSONObject;
  * any file that ends in .json will be loaded and the entire directory will be
  * watched. 
  * 
+ * What do we HAVE to keep in a file?
+ * - Path to the executor
+ * - framework name override
+ * - where is kafka
+ * - where is mesos
+ * 
+ * Can we LOOK for mesos? 
+ * - Look in the /etc/mesos/zk file and visit zookeeper node
+ * - Check the leader.mesos DNS address from mesos DNS
+ * 
+ * Where do we put the KAFKA Producer and consumer settings
+ * We can look in the same directory as the running scheduler for config files
+ * 
+ * We can probably 
+ * 
  */
 public class Configuration {
 	public String kafkaAddress;
 	public String mesosMaster;
-	public String frameworkName = "Ingest Manager";
+	public String frameworkName = "BrigadeProc";
 	public int kafkaPollIntervalms = 100;
 	public int maxInstances = 1000;
 	private Collection<Processor> processors = new ArrayList<>();

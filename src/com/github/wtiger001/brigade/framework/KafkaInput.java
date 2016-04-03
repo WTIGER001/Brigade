@@ -53,7 +53,7 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 		
 		Properties props = new Properties();
 		props.put("bootstrap.servers", configuration.kafkaAddress);
-		props.put("group.id", configuration.frameworkName + "-" + topic);
+		props.put("group.id", configuration.frameworkName + "-" + topic +"-"+processor.name);
 		props.put("enable.auto.commit", "false");
 		props.put("auto.commit.interval.ms", "1000");
 		props.put("session.timeout.ms", "30000");
