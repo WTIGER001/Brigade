@@ -23,7 +23,6 @@ import org.apache.mesos.Protos.TaskStatus;
 
 import com.github.wtiger001.brigade.Configuration;
 import com.github.wtiger001.brigade.Processor;
-import com.github.wtiger001.brigade.ProcessorTask;
 
 /**
  * Source of all tasks. This class connects to a Kafka Topic and places tasks in

@@ -24,7 +24,6 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.Protos.Label;
 
 import com.github.wtiger001.brigade.Configuration;
-import com.github.wtiger001.brigade.ProcessorTask;
 import com.google.protobuf.ByteString;
 import com.netflix.fenzo.SchedulingResult;
 import com.netflix.fenzo.TaskAssignmentResult;

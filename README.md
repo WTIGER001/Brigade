@@ -42,6 +42,24 @@ Current instructions. Apache Mesos and Apache Kafka must be running.
 1. Build the Executor - Build the executor and place it in either the same place for all the Mesos Agents ore place it on a commonly shared drive.
 2. For each Processor - Run the "Framework" class with the arguments processor name and the configuration JSON file
 
+## Dependancies
+
+Gradle / Maven is not yet setup so until then please just get the necessary dependencies manually.
+
+- fenzo-core-0.8.6.jar
+- jackson-annotations-2.7.3.jar
+- jackson-core-2.7.3.jar
+- jackson-databind-2.7.3.jar
+- json-20160212.jar
+- kafka-clients-0.9.0.1-sources.jar
+- kafka-clients-0.9.0.1.jar
+- mesos-0.28.0.jar
+- protobuf-java-2.6.1.jar
+- slf4j-1.7.20.tar.gz
+- slf4j-api-1.7.20.jar
+- slf4j-jdk14-1.7.20.jar
+- slf4j-simple-1.7.20.jar
+
 ## TODO
 LOTS TO DO
 
@@ -80,23 +98,6 @@ LOTS TO DO
 - Metrics / Tracking Interface
 
 
-## Dependancies
-
-Gradle / Maven is not yet setup so until then please just get the necessary dependancies manually.
-
-- fenzo-core-0.8.6.jar
-- jackson-annotations-2.7.3.jar
-- jackson-core-2.7.3.jar
-- jackson-databind-2.7.3.jar
-- json-20160212.jar
-- kafka-clients-0.9.0.1-sources.jar
-- kafka-clients-0.9.0.1.jar
-- mesos-0.28.0.jar
-- protobuf-java-2.6.1.jar
-- slf4j-1.7.20.tar.gz
-- slf4j-api-1.7.20.jar
-- slf4j-jdk14-1.7.20.jar
-- slf4j-simple-1.7.20.jar
 
 
 

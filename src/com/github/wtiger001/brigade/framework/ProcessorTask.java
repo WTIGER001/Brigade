@@ -1,8 +1,9 @@
-package com.github.wtiger001.brigade;
+package com.github.wtiger001.brigade.framework;
 
 import java.util.Collections;
 import java.util.List;
 
+import com.github.wtiger001.brigade.Processor;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
