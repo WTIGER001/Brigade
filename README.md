@@ -17,6 +17,7 @@ The Process Scheduler is responsible for handling a single processor configurati
 ### Processor Specification
 The processor is specified in JSON. The schema for it is:
 
+```
 {
 	"name"  : 	"PROCESSOR NAME",
 	"input" :	"INPUT TOPIC NAME",
@@ -25,6 +26,7 @@ The processor is specified in JSON. The schema for it is:
 	"mem"	:	"MEMORY TO USE",
 	"cpus"  :	"CPUS TO USE"
 }
+```
 
 A sample configuration file is included. Note, long term plans are to use the Curator library to store the configuration of each processor in ZooKeeper
 
@@ -57,7 +59,7 @@ Gradle / Maven is not yet setup so until then please just get the necessary depe
 - mesos-0.28.0.jar
 - protobuf-java-2.6.1.jar
 - slf4j-1.7.20.tar.gz
- -slf4j-api-1.7.20.jar
+- slf4j-api-1.7.20.jar
 - slf4j-jdk14-1.7.20.jar
 - slf4j-simple-1.7.20.jar
 
