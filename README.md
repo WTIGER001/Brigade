@@ -64,10 +64,10 @@ Gradle / Maven is not yet setup so until then please just get the necessary depe
 LOTS TO DO
 
 ### Overall
-- Get Graddle or Maven working to pull in the dependencies
+- Get Gradle or Maven working to pull in the dependencies
 
 ### Per Processor Framework
-- Load configuration from zookeeper
+- Load configuration from zookeeper?
 - Update to use executor
 - Task Reconciliation
 - Failure modes
@@ -92,13 +92,7 @@ LOTS TO DO
 - Implement Health Checks
 - Integrate FluentD
 
-###User Interface
+### User Interface
 - We need one! 
 - Configuration Interface (read / write)
 - Metrics / Tracking Interface
-
-
-
-
-
-

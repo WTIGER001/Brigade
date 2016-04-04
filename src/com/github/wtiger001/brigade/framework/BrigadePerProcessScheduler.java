@@ -5,7 +5,9 @@ import java.util.Arrays;
 
 import com.github.wtiger001.brigade.Configuration;
 
-
+/**
+ * Application to start the Brigade Per Processor Scheduler Framework
+ */
 public class BrigadePerProcessScheduler {
 
 	/*
@@ -23,9 +25,14 @@ public class BrigadePerProcessScheduler {
 		//TODO LOGGING!
 		// Processor
 		String processorName = args[0];
+		System.out.println("PROCESSOR NAME : " + processorName);
 		
 		// Load the configuration
 		String[] configurationFiles = Arrays.copyOfRange(args, 1, args.length);
+		for (String c : configurationFiles) {
+			System.out.println("CONFIGURATION FILE : " + c);
+		}
+		
 		Configuration configuration = new Configuration();
 		configuration.readConfiguration(configurationFiles);
 		

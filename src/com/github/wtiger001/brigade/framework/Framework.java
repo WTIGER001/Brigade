@@ -73,7 +73,7 @@ public class Framework {
                 .setUser("")
                 .build();
 		
-		// Build the Datasource
+		// Build the Kafka components
         input = new KafkaInput(this, configuration, processor);
         output = new KafkaOutput(this, configuration, processor);
 		
