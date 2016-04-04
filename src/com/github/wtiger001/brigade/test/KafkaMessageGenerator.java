@@ -41,7 +41,7 @@ public class KafkaMessageGenerator {
 //            	System.out.println("Task Created " + tasks);
             }
 //            System.out.println("<----- Done Iteration");
-            if (numIters > 0) {
+            if (numIters > 1) {
 	            try {
 	                Thread.sleep(10000);
 	            } catch (InterruptedException ie) {

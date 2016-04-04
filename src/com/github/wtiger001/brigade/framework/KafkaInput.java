@@ -30,9 +30,9 @@ import com.github.wtiger001.brigade.Processor;
  * 
  */
 public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCommitCallback{
+	private static int KAFKA_POLL_INTERVAL = 100;
 	private Map<TopicPartition, OffsetAndMetadata> updates;
 	private BlockingQueue<ProcessorTask> taskQueue;
-	private final Configuration configuration;
 	private KafkaConsumer<String, String> consumer;
 	private String topic;
 	private AtomicBoolean isShutdown;
@@ -46,7 +46,6 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 		this.framework = framework;
 		this.processor = processor;
 		this.topic = processor.input;
-		this.configuration = configuration;
 		this.taskQueue  = new LinkedBlockingQueue<>();
 		this.isShutdown = new AtomicBoolean(false);
 		this.updates = new ConcurrentHashMap<>();
@@ -92,8 +91,8 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 //				System.out.println("Checking for new messages");
 				
 				// Get from Kafka
-				ConsumerRecords<String, String> records = consumer.poll(configuration.kafkaPollIntervalms);
-//				System.out.println("Found: " + records.count());
+				ConsumerRecords<String, String> records = consumer.poll(KAFKA_POLL_INTERVAL);
+				System.out.println("Found: " + records.count());
 				
 				for (ConsumerRecord<String, String> record : records) {
 					// Generate the task Id

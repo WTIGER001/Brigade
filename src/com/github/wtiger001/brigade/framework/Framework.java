@@ -47,12 +47,11 @@ public class Framework {
 	private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 	private final Map<String, ProcessorTask> pendingTasksMap = new HashMap<>();
 	private FrameworkID frameworkId;
-
+	private final Configuration configuration;
 	private Thread kakfaOutputThread;
 
-	public Framework(String processorName, Configuration configuration) {
-		Processor processor = configuration.getProcessor(processorName);
-		
+	public Framework(Processor processor, Configuration configuration) {
+		this.configuration = configuration;
         this.leasesQueue = new LinkedBlockingQueue<>();
         
         scheduler = new TaskScheduler.Builder()
@@ -67,7 +66,7 @@ public class Framework {
                 .build();
 		
 		// Construct the Framework
-		String frameworkName = configuration.frameworkName + "_" + processorName + "_" + VERSION;
+		String frameworkName = configuration.frameworkName + "_" + processor.name + "_" + VERSION;
 		Protos.FrameworkInfo framework = Protos.FrameworkInfo.newBuilder()
                 .setName(frameworkName)
                 .setUser("")
@@ -195,7 +194,7 @@ public class Framework {
                 .build();
         
         CommandInfo ci = CommandInfo.newBuilder()
-                .setValue("java -jar /home/john/exe/executor.jar") 
+                .setValue(configuration.executorCommand) 
                 .build();
         
         ExecutorInfo executor = ExecutorInfo.newBuilder() 
