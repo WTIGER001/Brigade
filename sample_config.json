@@ -1,21 +1,17 @@
-{
-	"kakfa-address"		: "mesosmaster:9092",
-	"mesos-master"		: "zk://192.168.1.117:2181/mesos",
-	"processors"			: [
-		{
-			"name"			:	"PROCESSOR", 
-			"input"			:	"test2",
-			"output"		: 	"test3",
-			"docker"		:	"echo",
-			"cpus"			: 	"0.45",
-			"mem"			:	"64"
-		}, 
-		{
-			"name"			:	"PROCESSOR_2", 
-			"input"			:	"test3",
-			"docker"		:	"echo2",
-			"cpus"			: 	"0.45",
-			"mem"			:	"64"
-		}
-	]
-}
+[
+	{
+		"name"			:	"PROCESSOR", 
+		"input"			:	"test2",
+		"output"		: 	"test3",
+		"docker"		:	"echo",
+		"cpus"			: 	"0.45",
+		"mem"			:	"64"
+	}, 
+	{
+		"name"			:	"PROCESSOR2", 
+		"input"			:	"test3",
+		"docker"		:	"echo",
+		"cpus"			: 	"0.45",
+		"mem"			:	"64"
+	}
+]

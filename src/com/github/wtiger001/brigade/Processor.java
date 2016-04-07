@@ -7,6 +7,58 @@ public class Processor {
 	public double memory;
 	public double cpus;
 	public String docker;
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		long temp;
+		temp = Double.doubleToLongBits(cpus);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((docker == null) ? 0 : docker.hashCode());
+		result = prime * result + ((input == null) ? 0 : input.hashCode());
+		temp = Double.doubleToLongBits(memory);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((output == null) ? 0 : output.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Processor other = (Processor) obj;
+		if (Double.doubleToLongBits(cpus) != Double.doubleToLongBits(other.cpus))
+			return false;
+		if (docker == null) {
+			if (other.docker != null)
+				return false;
+		} else if (!docker.equals(other.docker))
+			return false;
+		if (input == null) {
+			if (other.input != null)
+				return false;
+		} else if (!input.equals(other.input))
+			return false;
+		if (Double.doubleToLongBits(memory) != Double.doubleToLongBits(other.memory))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (output == null) {
+			if (other.output != null)
+				return false;
+		} else if (!output.equals(other.output))
+			return false;
+		return true;
+	}
+
 	public String input;
 	public String output;
 	

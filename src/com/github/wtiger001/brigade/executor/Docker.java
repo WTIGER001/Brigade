@@ -23,6 +23,9 @@ public class Docker {
 		command.add("/usr/bin/docker");
 		command.add("run");
 		
+		// Add the flag to attach to stdin
+		command.add("-i"); // Interactive
+		
 		// Add the name
 		command.add("--name");
 		command.add(taskInfo.getTaskId().getValue());

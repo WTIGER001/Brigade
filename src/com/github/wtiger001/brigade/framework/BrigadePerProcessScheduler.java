@@ -11,6 +11,8 @@ import com.github.wtiger001.brigade.Processor;
  */
 public class BrigadePerProcessScheduler {
 
+	
+
 	/*
 	 * NEED TO PASS IN?: processor name and a list of config files... This needs to be completely redone
 	 * 
@@ -37,22 +39,22 @@ public class BrigadePerProcessScheduler {
 //		Configuration configuration = new Configuration();
 //		configuration.readConfiguration(configurationFiles);
 		ArrayList<String> errors = new ArrayList<>();
-		String mesosmaster = System.getenv("MESOS_MASTER");
+		String mesosmaster = System.getenv(Configuration.MESOS_MASTER_ENV);
 		if (mesosmaster == null || mesosmaster.isEmpty()) {
 			errors.add("Missing MESOS_MASTER environment variable");
 		}
 		
-		String kafkaaddress = System.getenv("KAFKA_ADDRESS");
+		String kafkaaddress = System.getenv(Configuration.KAFKA_ADDRESS_ENV);
 		if (kafkaaddress == null || kafkaaddress.isEmpty()) {
 			errors.add("Missing KAFKA_ADDRESS environment variable");
 		}
 		
-		String executorCmd = System.getenv("BRIGADE_EXECUTOR");
+		String executorCmd = System.getenv(Configuration.BRIGADE_EXECUTOR_ENV);
 		if (executorCmd == null || executorCmd.isEmpty()) {
 			errors.add("Missing BRIGADE_EXECUTOR environment variable");
 		}
 		
-		String processorJson = System.getenv("PROCESSOR");
+		String processorJson = System.getenv(Configuration.PROCESSOR_ENV);
 		if (processorJson == null || processorJson.isEmpty()) {
 			errors.add("Missing PROCESSOR environment variable");
 		}
