@@ -2,14 +2,14 @@
 An Apache Mesos Framework for processing messages using Kafka
 
 ## Description
-Brigade is an Apache Mesos framework that monitors Kafka topics to perform processing in Docker. Brigade gets configured with a set of "processors". Each processor has an input topic, a docker to perform processing and an optional output topic where the processing results will be stored. Brigade is humorously named after the old time bucket brigades that were used to put out fires and move dirt. This project fills the need for a Mesos Nativce framework for simplistic message processing for more complex workflows Apache Storm and APache Spark will always be better candidates.
+Brigade is an Apache Mesos framework that monitors Kafka topics to perform processing in Docker. Brigade gets configured with a set of "processors". Each processor has an input topic, a docker to perform processing and an optional output topic where the processing results will be stored. Brigade is humorously named after the old time bucket brigades that were used to put out fires and move dirt. This project fills the need for a Mesos Native framework for simplistic message processing for more complex workflows Apache Storm and APache Spark will always be better candidates.
 
 > Author's Note: Please be patient with me. This is my first Mesos Framework and I am learning the particulars of it as I go.
 
 ## Architecture
 
-### Brigade Meta Scheduler
-[Not Started Yet] The meta scheduler is a top level scheduler (that is expected to be run in Marathon). It will run a Brigade Process Scheduler for each processor in the configuration. As the configuration changes the Brigade Meta Scheduler will adapt and start or stop each Brigade Process Scheduler as necessary.The Meta Scheduler is an optional component. You can instead just configure each of the process schedulers independently.
+### Brigade General
+A top level process (that is expected to be run in Marathon). It will run a Brigade Process Scheduler for each processor in the configuration. As the configuration changes the Brigade Meta Scheduler will adapt and start or stop each Brigade Process Scheduler as necessary.The Meta Scheduler is an optional component. You can instead just configure each of the process schedulers independently. Currently the Brigade General is controlled by a properties file. Inside the properties file there is a PROCESSOR_DIR property that can be set to either a file or a directory. It will check the direct0ry or file for changes every n seconds (not sure what the right setting should be). Brigade General does not cache and of the jobs buts reads them directly from the Marathon API. 
 
 ### Brigade Process Scheduler
 The Process Scheduler is responsible for handling a single processor configuration. The process scheduler starts a Apache Kafka Consumer to monitor an input topic. For each input topic the scheduler attempts to schedule tasks in Apache Mesos. It uses the Netflix Fenzo library for task determination. The message and the processor configuration are sent as information in the task for the Brigade Executor to use. The scheduler receives a TASK_FINISHED status and retrieves the output from the DOcker processor (part of the Task Status). The scheduler has an Apache Kafka Producer that then places the output message in the "output" topic for the processor. Using this approach it can be very simple to string together a processing chain.
@@ -59,6 +59,7 @@ Gradle / Maven is not yet setup so until then please just get the necessary depe
 - slf4j-api-1.7.20.jar
 - slf4j-jdk14-1.7.20.jar
 - slf4j-simple-1.7.20.jar
+- jersey-bundle-1.19.1.jar
 
 ## TODO
 LOTS TO DO
@@ -67,28 +68,21 @@ LOTS TO DO
 - Get Gradle or Maven working to pull in the dependencies
 
 ### Per Processor Framework
-- Load configuration from zookeeper?
-- Update to use executor
 - Task Reconciliation
 - Failure modes
 - Explore more robust tracking model
 - Calculate metrics
 - Implement Health Checks
 - Integrate FluentD
-- Separate the INI type information from the processor configuration
 
 ### Executor
 - Complete docker options supported and update JSON Configuration 
-- Language? Try Go!
 - Consider having the executor send the output message to Kafka
 - Figure out how to run the executor as a docker
 - Look at the docker remote API
 
 ### Meta Framework
-- Write basic framework to load configuration and start “per-processor” frameworks in Marathon
 - REST API to get and update configuration
-- Write in? Python? Go?
-- List for changes in the configuration. On a change to a processor then restart the “per-processor” framework
 - Implement Health Checks
 - Integrate FluentD
 
