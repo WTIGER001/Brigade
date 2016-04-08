@@ -19,6 +19,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.mesos.Protos.TaskStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.wtiger001.brigade.Configuration;
 import com.github.wtiger001.brigade.Processor;
@@ -27,9 +29,10 @@ import com.github.wtiger001.brigade.Processor;
  * Source of all tasks. This class connects to a Kafka Topic and places tasks in
  * a FIFO queue to be consumed by the Framework. The configuration for this 
  * class determines how many messages are kept
- * 
  */
-public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCommitCallback{
+public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCommitCallback {
+	private static final Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
+
 	private static int KAFKA_POLL_INTERVAL = 100;
 	private Map<TopicPartition, OffsetAndMetadata> updates;
 	private BlockingQueue<ProcessorTask> taskQueue;
@@ -59,7 +62,7 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 		props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 		props.put("value.deserializer",	"org.apache.kafka.common.serialization.StringDeserializer");
 		
-		System.out.println("Connecting to Kafka topic: " + processor.input);
+		LOG.info("Connecting to Kafka topic: " + processor.input);
 		this.consumer = new KafkaConsumer<>(props);
 		List<String> topics = new ArrayList<>();
 		topics.add(topic);
@@ -88,17 +91,16 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 			
 			// Check size
 			if (taskQueue.size() < maxSize) {
-//				System.out.println("Checking for new messages");
 				
 				// Get from Kafka
 				ConsumerRecords<String, String> records = consumer.poll(KAFKA_POLL_INTERVAL);
-				System.out.println("Found: " + records.count());
+				LOG.trace("Found: " + records.count());
 				
 				for (ConsumerRecord<String, String> record : records) {
 					// Generate the task Id
         			String id = genTaskId(record, processor);
         			
-        			System.out.println("Generating Task: " + id);
+        			LOG.info("Generating Task: " + id);
         			
         			// Report the task received
 					tracker.reportReceived(
@@ -112,7 +114,7 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
         			taskQueue.offer(taskRequest);
 				}
 			} else {
-				System.out.println("Queue is full... Waiting a little bit");
+				LOG.trace("Queue is full... Waiting a little bit");
 				try {
 					Thread.sleep(sleepMs);
 				} catch (InterruptedException ie) {
@@ -139,15 +141,15 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 			tracker.reportDone(status.getTaskId().getValue());
 			
 			String response = status.getData().toStringUtf8();
-			System.out.println("RECEIVED RESPONSE ");
-			System.out.println(response);
+			LOG.trace("RECEIVED RESPONSE ");
+			LOG.trace(response);
 			
 			framework.getOutput().post(response);
 			
 			break;
 		case TASK_LOST:
 			//TODO Put at the front of the queue
-			System.out.println("TASK LOST <DETAILS>");
+			LOG.trace("TASK LOST <DETAILS>");
 			break;
 		default:
 			break;
@@ -172,9 +174,9 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 
 	@Override
 	public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-		System.out.println("onPartitionsRevoked");
+		LOG.trace("onPartitionsRevoked");
 		for (TopicPartition p : partitions) {
-			System.out.println("\t" + p.topic() + "\t"+p.partition());
+			LOG.trace("\t" + p.topic() + "\t"+p.partition());
 		}
 		tracker.revokeTopics(partitions);
 	}
@@ -182,9 +184,9 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 	@Override
 	public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
 		// TODO Auto-generated method stub
-		System.out.println("onPartitionsAssigned");
+		LOG.trace("onPartitionsAssigned");
 		for (TopicPartition p : partitions) {
-			System.out.println("\t" + p.topic() + "\t"+p.partition());
+			LOG.trace("\t" + p.topic() + "\t"+p.partition());
 		}
 		tracker.updateTopics(partitions);
 	}
@@ -196,11 +198,11 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 	@Override
 	public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets,	Exception exception) {
 		if (exception != null) {
-			System.out.println("EXCEPTION: "+ exception.getMessage());
+			LOG.warn("EXCEPTION: "+ exception.getMessage());
 		}
 		
 		for (Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
-			System.out.println("Offsets updated! " + entry.getKey().topic() + "-" + entry.getKey().partition() + " offset: " + entry.getValue().offset());
+			LOG.trace("Offsets updated! " + entry.getKey().topic() + "-" + entry.getKey().partition() + " offset: " + entry.getValue().offset());
 			tracker.updateOffset(entry.getKey(), entry.getValue());
 		}
 	}

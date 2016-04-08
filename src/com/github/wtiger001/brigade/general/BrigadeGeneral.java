@@ -12,6 +12,8 @@ import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.wtiger001.brigade.Processor;
 
@@ -29,6 +31,7 @@ import com.github.wtiger001.brigade.Processor;
  * 
  */
 public class BrigadeGeneral {
+	private static final Logger LOG = LoggerFactory.getLogger(BrigadeGeneral.class);
 	private static final String BOOTSTRAP = "BOOTSTRAP";
 	private static  int sleepTime =  10* 1000; // 5 min
 	private static final FilenameFilter JSON_FILTER = new FilenameFilter() {
@@ -38,6 +41,8 @@ public class BrigadeGeneral {
 	};
 
 	public static void main(String[] args) throws IOException {
+		LOG.info("Starting BrigadeGeneral " + String.join(", ", args));
+		
 		String configFile = null;
 		boolean bootstrapmode = false;
 		if (args.length == 1) {
@@ -58,15 +63,28 @@ public class BrigadeGeneral {
 						"I am confused... I expected a BOOTSTRAP argument and a file argument!");
 			}
 		}
-		System.out.println("Starting with config: " + configFile==null?"NONE":configFile);
+		
+		if (configFile == null) {
+			LOG.info("No configuration file specified");
+		} else if (new File(configFile).canRead() == false ){
+			LOG.error("Cannot read configuration file " + configFile);
+			System.exit(1);
+		} else {
+			LOG.info("Starting with config: " + configFile);
+		}
+		
 		BrigadeGeneralConfiguration cfg = new BrigadeGeneralConfiguration();
 		if (configFile != null)  {
-			System.out.println(cfg);
 			cfg.fromFile(configFile);
 		}
-		System.out.println(cfg);
-		cfg.validate();
-		System.out.println("VALID");
+		LOG.info("Configuration Settings: " + cfg.toString());
+
+		try {
+			cfg.validate();
+		} catch (IllegalStateException ie) {
+			LOG.error("Invalid Configuration ", ie);
+			System.exit(1);
+		}
 		
 		while (true) {
 			// Load the Configuration from TBD
@@ -76,18 +94,15 @@ public class BrigadeGeneral {
 				System.out.println(p.toJson());
 			}
 			
-			
 			try {
 				process(cfg, current);
 			} catch (MarathonException me) {
-				System.err.println("Error loading marathon : " + me.getMessage());
-				me.printStackTrace();
+				LOG.error("Error loading marathon : " + me.getMessage(), me);
 			}
 			
 			if (bootstrapmode) {
 				// Add the general process
-				
-				System.out.println("COMPLETEING Bootstrap process. " 
+				LOG.info("COMPLETEING Bootstrap process. " 
 						+ "Brigade General should now be running in marathon");
 				return;
 			}
@@ -111,7 +126,7 @@ public class BrigadeGeneral {
 					Set<Processor> local = loadProcessorFile(f);
 					found.addAll(local);
 				} catch (IOException ioe) {
-					System.err.println("Error Processing File: " + ioe.getMessage());
+					LOG.error("Error Processing File " + f.getAbsolutePath(), ioe);
 				}
 			}
 		} else if (dir.isFile()) {
@@ -119,7 +134,7 @@ public class BrigadeGeneral {
 				Set<Processor> local = loadProcessorFile(dir);
 				found.addAll(local);
 			} catch (IOException ioe) {
-				System.err.println("Error Processing File: " + ioe.getMessage());
+				LOG.error("Error Processing File " + dir.getAbsolutePath() , ioe);
 			}
 		}
 
@@ -164,21 +179,21 @@ public class BrigadeGeneral {
 		for (Processor p : processors) {
 			// Convert the processor to a job configuration for marathon
 			JSONObject newJob = m.makeJob(p,cfg);
-			System.out.println("MAKE JOB");
-			System.out.println(newJob.toString(2));
+			LOG.debug("Making Job: " + p.name);
+			LOG.trace(newJob.toString(2));
 			
 			String id = m.appId(p);
-			System.out.println("Looking for id : " + id);
+			LOG.debug("Looking for id : " + id);
 			JSONObject curJob = current.get(id);
 
 			if (curJob == null) {
-				System.out.println("No Job to Compare to... adding new job");
+				LOG.debug("No Job to Compare to... adding new job");
 				m.addJob(newJob);
 			} else if (isDifferent(newJob, curJob)) {
-				System.out.println("Job Found but is different... updating job");
+				LOG.debug("Job Found but is different... updating job");
 				m.updateJob(newJob);
 			} else {
-				System.out.println("Job Found but is the same");
+				LOG.debug("Job Found but is the same");
 			}
 
 			current.remove(id);
@@ -198,8 +213,8 @@ public class BrigadeGeneral {
 		Processor p1 = new Processor(newJob.getJSONObject("env").getString("PROCESSOR"));
 		Processor p2 = new Processor(json.getJSONObject("env").getString("PROCESSOR"));
 		
-		System.out.println(p1.toJson());
-		System.out.println(p2.toJson());
+		LOG.trace(p1.toJson());
+		LOG.trace(p2.toJson());
 		
 		if (p1.equals(p2)) {
 			return false;

@@ -6,6 +6,8 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.VirtualMachineLease;
@@ -13,6 +15,8 @@ import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.fenzo.samples.SampleFramework;
 
 public class MesosScheduler implements Scheduler {
+	private static final Logger LOG = LoggerFactory.getLogger(MesosScheduler.class);
+	
 	private final BlockingQueue<VirtualMachineLease> leasesQueue;
 	private final TaskScheduler scheduler;
 	private final KafkaInput source;
@@ -31,7 +35,7 @@ public class MesosScheduler implements Scheduler {
      */
     @Override
     public void registered(SchedulerDriver driver, Protos.FrameworkID frameworkId, Protos.MasterInfo masterInfo) {
-        System.out.println("Registered! ID = " + frameworkId.getValue());
+        LOG.info("Registered! ID = " + frameworkId.getValue());
         this.framework.setFrameworkId(frameworkId);
         scheduler.expireAllLeases();
     }
@@ -42,7 +46,7 @@ public class MesosScheduler implements Scheduler {
      */
     @Override
     public void reregistered(SchedulerDriver driver, Protos.MasterInfo masterInfo) {
-        System.out.println("Re-registered " + masterInfo.getId());
+    	LOG.info("Re-registered " + masterInfo.getId());
         scheduler.expireAllLeases();
     }
 
@@ -54,7 +58,7 @@ public class MesosScheduler implements Scheduler {
     @Override
     public void resourceOffers(SchedulerDriver driver, List<Protos.Offer> offers) {
         for(Protos.Offer offer: offers) {
-            System.out.println("Adding offer " + offer.getId() + " from host " + offer.getHostname());
+        	LOG.debug("Adding offer " + offer.getId() + " from host " + offer.getHostname());
             leasesQueue.offer(new VMLeaseObject(offer));
         }
     }
@@ -76,7 +80,7 @@ public class MesosScheduler implements Scheduler {
      */
     @Override
     public void statusUpdate(SchedulerDriver driver, Protos.TaskStatus status) {
-        System.out.println("Task Update: " + status.getTaskId().getValue() + " in state " + status.getState());
+    	LOG.trace("Task Update: " + status.getTaskId().getValue() + " in state " + status.getState());
         switch (status.getState()) {
             case TASK_FAILED:
             case TASK_LOST:
@@ -127,7 +131,7 @@ public class MesosScheduler implements Scheduler {
      */
     @Override
     public void executorLost(SchedulerDriver driver, Protos.ExecutorID executorId, Protos.SlaveID slaveId, int status) {
-        System.out.println("Executor " + executorId.getValue() + " lost, status=" + status);
+    	LOG.info("Executor " + executorId.getValue() + " lost, status=" + status);
     }
 
     @Override

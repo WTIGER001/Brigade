@@ -6,14 +6,19 @@ import java.util.Set;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaTopicTracker {
+	private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicTracker.class);
+	
 	private final String topic;
 	private HashMap<TopicPartition, KafkaMessageTracker> partitionTrackers;
 	private HashMap<String, KafkaMessageTracker> taskIndex;
 	private KafkaInput source;
 	
 	public KafkaTopicTracker(String topic, KafkaInput source) {
+		LOG.info("Tracking " + topic);
 		this.topic = topic;
 		this.source = source;
 		this.partitionTrackers = new HashMap<>();

@@ -74,6 +74,7 @@ LOTS TO DO
 - Calculate metrics
 - Implement Health Checks
 - Integrate FluentD
+- Handle hard and soft constraints
 
 ### Executor
 - Complete docker options supported and update JSON Configuration 
