@@ -64,5 +64,11 @@ public class KafkaOutput implements Runnable {
 		
 	}
 
+	public void postError(String message) {
+		if (processor.error != null && processor.error.isEmpty() == false) {
+			requests.add(new ProducerRecord<String, String>(processor.error, message));
+		}
+	}
+
 	
 }

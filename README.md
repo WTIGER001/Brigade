@@ -22,9 +22,14 @@ The processor is specified in JSON. The schema for it is:
 	"name"  : 	"PROCESSOR NAME",
 	"input" :	"INPUT TOPIC NAME",
 	"output":   "OUTPUT TOPIC NAME",
+	"error" :	"ERROR TOPIC NAME"
 	"docker":   "DOCKER IMAGE NAME",
 	"mem"	:	"MEMORY TO USE",
-	"cpus"  :	"CPUS TO USE"
+	"cpus"  :	"CPUS TO USE", 
+	"volumes": [
+		{ "host-path" : "PATH ON HOST", "container-path" : "PATH ON CONTAINER", "mode" : "RO" }
+	], 
+	"env" : ["FOO=BAR", "A=B"]
 }
 ```
 

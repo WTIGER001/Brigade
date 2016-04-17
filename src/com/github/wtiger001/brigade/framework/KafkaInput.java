@@ -133,6 +133,13 @@ public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCo
 		switch (status.getState()) {
 		case TASK_ERROR:
 			tracker.reportError(status.getTaskId().getValue());
+			
+			String erresponse = status.getData().toStringUtf8();
+			LOG.trace("RECEIVED ERROR RESPONSE ");
+			LOG.trace(erresponse);
+			
+			framework.getOutput().postError(erresponse);
+			
 			break;
 		case TASK_FAILED:
 			tracker.reportFailure(status.getTaskId().getValue());

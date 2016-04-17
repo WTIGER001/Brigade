@@ -12,10 +12,12 @@ import org.apache.mesos.Protos.SlaveInfo;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 
+/**
+ * Sample executor that runs Docker
+ */
 public class MyExecutor implements Executor {
 
 	private Map<String, ProcessRunner> runningTasks = new ConcurrentHashMap<>();
-	
 	
 	public static void main(String[] args) {
 		MyExecutor exe = new MyExecutor();
