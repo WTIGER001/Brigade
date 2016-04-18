@@ -52,7 +52,8 @@ public class KafkaMessageGenerator {
 	}
 	
 	private static void generateTask(String topic) throws InterruptedException, ExecutionException {
-		String message = "{ 'metadata' : { 'name':'abc.txt' }, 'locations' : [{ 'uri':'file:///home/john/files/abc.txt', 'type':'ingest', 'processing':'none'}]}";
+		String message = "{ 'metadata' : { 'name':'abc.txt' }, 'locations' : [{ 'url':'file:///home/john/files/abc.txt', 'type':'ingest', 'processing':'none'}]}";
+		message = message.replaceAll("'", "\"");
 		ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, message);
 		producer.send(record).get();
 	}

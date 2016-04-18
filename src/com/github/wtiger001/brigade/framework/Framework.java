@@ -238,10 +238,10 @@ public class Framework {
 
 		ByteString data = ByteString.copyFromUtf8(t.getMessage());
 
-		Label processorLabel = Label.newBuilder().setKey("processor-configuration").setValue(t.getProcessor().toJson())
+		Label processorLabel = Label.newBuilder().setKey("processor").setValue(t.getProcessor().toJson())
 				.build();
 
-		Label messageLabel = Label.newBuilder().setKey("input-message").setValueBytes(data).build();
+		Label messageLabel = Label.newBuilder().setKey("message").setValueBytes(data).build();
 		Labels labels = Labels.newBuilder().addLabels(processorLabel).addLabels(messageLabel).build();
 
 		return Protos.TaskInfo.newBuilder().setName("task " + pTaskId.getValue()).setTaskId(pTaskId).setSlaveId(slaveID)
