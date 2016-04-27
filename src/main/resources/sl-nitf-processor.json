@@ -1,0 +1,17 @@
+{
+    "name": "SL NITF Metadata Extractor",
+    "input": "catalog.sl-nitf",
+    "output": "catalog.metadata",
+    "error": "catalog.metadata.error",
+    "docker": "docker.devlab.local/helloworld",
+    "mem": "10",
+    "cpus": "0.5",
+    "volumes": [
+        {
+            "host-path": "/shared/catalog/sl-nitf/queue/stage",
+            "container-path": "/catalog/input",
+            "mode": "RO"
+        }
+    ],
+    "env": ["FOO=BAR"]
+}
