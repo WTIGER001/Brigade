@@ -81,70 +81,22 @@ public class Processor {
 	 */
 	public Map<Integer, Integer> ports = new HashMap<>();
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		long temp;
-		temp = Double.doubleToLongBits(cpus);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((docker == null) ? 0 : docker.hashCode());
-		result = prime * result + ((input == null) ? 0 : input.hashCode());
-		temp = Double.doubleToLongBits(memory);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((output == null) ? 0 : output.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Processor other = (Processor) obj;
-		if (Double.doubleToLongBits(cpus) != Double.doubleToLongBits(other.cpus))
-			return false;
-		if (docker == null) {
-			if (other.docker != null)
-				return false;
-		} else if (!docker.equals(other.docker))
-			return false;
-		if (input == null) {
-			if (other.input != null)
-				return false;
-		} else if (!input.equals(other.input))
-			return false;
-		if (Double.doubleToLongBits(memory) != Double.doubleToLongBits(other.memory))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (output == null) {
-			if (other.output != null)
-				return false;
-		} else if (!output.equals(other.output))
-			return false;
-		return true;
-	}
+        public String hostnameConstraint;
+        
+        public Map<String, String> attributeConstraints = new HashMap<>();
 
 	public Processor() {
 
 	}
 
 	public Processor(JSONObject json) {
-		this.name = str(json, "name", "NO_NAME");
-		this.docker = str(json, "docker", "NO_DOCKER");
-		this.input = str(json, "input", null);
-		this.output = str(json, "output", null);
-		this.error = str(json, "error", null);
-		this.memory = dbl(json, "mem", 64.0);
-		this.cpus = dbl(json, "cpus", 0.2);
+		this.name = json.optString("name", "NO_NAME");
+		this.docker = json.optString("docker", "NO_DOCKER");
+		this.input = json.optString("input", null);
+		this.output = json.optString("output", null);
+		this.error = json.optString("error", null);
+		this.memory = json.optDouble("mem", 64.0);
+		this.cpus = json.optDouble("cpus", 0.2);
 
 		if (json.has("volumes")) {
 			JSONArray vols = json.getJSONArray("volumes");
@@ -153,6 +105,18 @@ public class Processor {
 				this.volumes.add(v);
 			}
 		}
+                
+                JSONObject constraints = json.optJSONObject("constraints");
+                if (constraints != null) {
+                    this.hostnameConstraint = constraints.optString("hostname");
+                    JSONObject attributes = constraints.optJSONObject("attributes");
+                    if (attributes != null) {
+                        for (String s : attributes.keySet()) {
+                            this.attributeConstraints.put(s, attributes.optString(s));
+                        }
+                    }
+                    
+                }
 
 		if (json.has("env")) {
 			JSONArray envs = json.getJSONArray("env");
@@ -168,13 +132,13 @@ public class Processor {
 		this(new JSONObject(jsonString));
 	}
 
-	private static String str(JSONObject obj, String name, String defaultValue) {
-		if (obj.has(name) && obj.get(name) != null) {
-			return obj.getString(name);
-		} else {
-			return defaultValue;
-		}
-	}
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
 	public String toJson() {
 		JSONObject json = new JSONObject();
@@ -211,11 +175,4 @@ public class Processor {
 		return json.toString();
 	}
 
-	private static double dbl(JSONObject obj, String name, double defaultValue) {
-		if (obj.has(name) && obj.get(name) != null) {
-			return obj.getDouble(name);
-		} else {
-			return defaultValue;
-		}
-	}
 }

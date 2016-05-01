@@ -37,229 +37,275 @@ import com.netflix.fenzo.functions.Action1;
  * A Per Processor Framework runs a single {@link Processor}.
  */
 public class Framework {
-	private static final Logger LOG = LoggerFactory.getLogger(Framework.class);
 
-	private static String VERSION = "0.0.1";
+    private static final Logger LOG = LoggerFactory.getLogger(Framework.class);
 
-	/** Thread to run the scheduler */
-	private Thread schedulerThread;
+    private static String VERSION = "0.0.1";
 
-	/** Thread to run the Kafka Consumer */
-	private Thread kafkaInputThread;
+    /**
+     * Thread to run the scheduler
+     */
+    private Thread schedulerThread;
 
-	/** Thread to run the framework (task submission) */
-	private Thread frameworkThread;
+    /**
+     * Thread to run the Kafka Consumer
+     */
+    private Thread kafkaInputThread;
 
-	/** Thread to run the Kafka Producer */
-	private Thread kakfaOutputThread;
+    /**
+     * Thread to run the framework (task submission)
+     */
+    private Thread frameworkThread;
 
-	/** Virtual Machine Leases that are use by Fenzo */
-	private final BlockingQueue<VirtualMachineLease> leasesQueue;
+    /**
+     * Thread to run the Kafka Producer
+     */
+    private Thread kakfaOutputThread;
 
-	/** The Scheduling Driver that is used to talk with mesos */
-	private final MesosSchedulerDriver mesosSchedulerDriver;
+    /**
+     * Virtual Machine Leases that are use by Fenzo
+     */
+    private final BlockingQueue<VirtualMachineLease> leasesQueue;
 
-	/** The Task scheduler from Fenzo */
-	private final TaskScheduler scheduler;
+    /**
+     * The Scheduling Driver that is used to talk with mesos
+     */
+    private final MesosSchedulerDriver mesosSchedulerDriver;
 
-	/** The Scheduling Driver reference that is used to talk with mesos */
-	private final AtomicReference<MesosSchedulerDriver> ref = new AtomicReference<>();
+    /**
+     * The Task scheduler from Fenzo
+     */
+    private final TaskScheduler scheduler;
 
-	/** Handles all Kafka input operations */
-	private final KafkaInput input;
+    /**
+     * The Soldier executor
+     */
+    private final ExecutorInfo executor;
 
-	/** Handles all Kafka output operations */
-	private final KafkaOutput output;
+    /**
+     * The Scheduling Driver reference that is used to talk with mesos
+     */
+    private final AtomicReference<MesosSchedulerDriver> ref = new AtomicReference<>();
 
-	/** Flag to signal that everything should shut down */
-	private final AtomicBoolean isShutdown = new AtomicBoolean(false);
+    /**
+     * Handles all Kafka input operations
+     */
+    private final KafkaInput input;
 
-	/** The tasks that need to be scheduled */
-	private final Map<String, ProcessorTask> pendingTasksMap = new HashMap<>();
+    /**
+     * Handles all Kafka output operations
+     */
+    private final KafkaOutput output;
 
-	/** The Framework ID provided by the Mesos Master */
-	private FrameworkID frameworkId;
+    /**
+     * Flag to signal that everything should shut down
+     */
+    private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
-	/** Configuration that came from environment variables */
-	private final Configuration configuration;
+    /**
+     * The tasks that need to be scheduled
+     */
+    private final Map<String, ProcessorTask> pendingTasksMap = new HashMap<>();
 
-	/**
-	 * Constructor for the framework
-	 * 
-	 * @param processor
-	 *            The processor that this framework is responsible for
-	 * @param configuration
-	 *            Configuration that came from environment variables
-	 */
-	public Framework(Processor processor, Configuration configuration) {
-		this.configuration = configuration;
-		this.leasesQueue = new LinkedBlockingQueue<>();
+    /**
+     * The Framework ID provided by the Mesos Master
+     */
+    private FrameworkID frameworkId;
 
-		scheduler = new TaskScheduler.Builder().withLeaseOfferExpirySecs(10)
-				.withLeaseRejectAction(new Action1<VirtualMachineLease>() {
-					@Override
-					public void call(VirtualMachineLease lease) {
-						LOG.trace("Declining offer on " + lease.hostname());
-						ref.get().declineOffer(lease.getOffer().getId());
-					}
-				}).build();
+    /**
+     * Configuration that came from environment variables
+     */
+    private final Configuration configuration;
 
-		// Construct the Framework
-		String frameworkName = configuration.frameworkName + "_" + processor.name + "_" + VERSION;
-		Protos.FrameworkInfo framework = Protos.FrameworkInfo.newBuilder().setName(frameworkName).setUser("").build();
+    /**
+     * Constructor for the framework
+     *
+     * @param processor The processor that this framework is responsible for
+     * @param configuration Configuration that came from environment variables
+     */
+    public Framework(Processor processor, Configuration configuration) {
+        this.configuration = configuration;
+        this.leasesQueue = new LinkedBlockingQueue<>();
 
-		// Build the Kafka components
-		input = new KafkaInput(this, configuration, processor);
-		output = new KafkaOutput(this, configuration, processor);
+        scheduler = new TaskScheduler.Builder().withLeaseOfferExpirySecs(10)
+                .withLeaseRejectAction(new Action1<VirtualMachineLease>() {
+                    @Override
+                    public void call(VirtualMachineLease lease) {
+                        LOG.trace("Declining offer on " + lease.hostname());
+                        ref.get().declineOffer(lease.getOffer().getId());
+                    }
+                }).build();
 
-		// Build the Scheduler
-		Scheduler mesosScheduler = new MesosScheduler(scheduler, leasesQueue, input, this);
-		mesosSchedulerDriver = new MesosSchedulerDriver(mesosScheduler, framework, configuration.mesosMaster);
-		ref.set(mesosSchedulerDriver);
-	}
+        // Construct the Framework
+        String frameworkName = configuration.frameworkName + "_" + processor.name + "_" + VERSION;
+        Protos.FrameworkInfo framework = Protos.FrameworkInfo.newBuilder().setName(frameworkName).setUser("").build();
 
-	public void start() {
-		// Start the Mesos Driver
-		schedulerThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				mesosSchedulerDriver.run();
-			}
-		}, "Mesos-Scheduler");
-		schedulerThread.start();
+        // Build the Kafka components
+        input = new KafkaInput(this, configuration, processor);
+        output = new KafkaOutput(this, configuration, processor);
 
-		// Start the Framework
-		frameworkThread = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				runAll();
-			}
-		}, "Task Scheduler");
-		frameworkThread.start();
+        // Build the executor
+        CommandInfo ci = CommandInfo.newBuilder()
+                .setValue(configuration.executorCommand).build();
 
-		// Start the Kafka Data Source
-		kafkaInputThread = new Thread(input, "Kafka Input");
-		kafkaInputThread.start();
+        executor = ExecutorInfo.newBuilder()
+                .setExecutorId(ExecutorID.newBuilder().setValue(configuration.frameworkName + " Soldier Executor"))
+//                .setFrameworkId(frameworkId)
+                .setCommand(ci).build();
 
-		kakfaOutputThread = new Thread(output, "Kafka Output");
-		kakfaOutputThread.start();
-	}
+        // Build the Scheduler
+        Scheduler mesosScheduler = new MesosScheduler(scheduler, leasesQueue, input, this);
+        mesosSchedulerDriver = new MesosSchedulerDriver(mesosScheduler, framework, configuration.mesosMaster);
+        ref.set(mesosSchedulerDriver);
+    }
 
-	public int join() {
-		Status s = mesosSchedulerDriver.join();
+    public void start() {
+        // Start the Mesos Driver
+        schedulerThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mesosSchedulerDriver.run();
+            }
+        }, "Mesos-Scheduler");
+        schedulerThread.start();
 
-		return s.getNumber();
-	}
+        // Start the Framework
+        frameworkThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                runAll();
+            }
+        }, "Task Scheduler");
+        frameworkThread.start();
 
-	void runAll() {
-		System.out.println("Running Task Scheduler");
+        // Start the Kafka Data Source
+        kafkaInputThread = new Thread(input, "Kafka Input");
+        kafkaInputThread.start();
 
-		List<VirtualMachineLease> newLeases = new ArrayList<>();
-		while (true) {
-			if (isShutdown.get())
-				return;
-			newLeases.clear();
-			List<ProcessorTask> newTaskRequests = new ArrayList<>();
+        kakfaOutputThread = new Thread(output, "Kafka Output");
+        kakfaOutputThread.start();
+    }
 
-			// System.out.println("#Pending tasks: " + pendingTasksMap.size());
-			ProcessorTask taskRequest = null;
-			try {
-				taskRequest = pendingTasksMap.size() == 0 ? input.getTaskQueue().poll(5, TimeUnit.SECONDS)
-						: input.getTaskQueue().poll(1, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				System.err.println("Error polling task queue: " + ie.getMessage());
-			}
-			if (taskRequest != null) {
-				input.getTaskQueue().drainTo(newTaskRequests);
-				newTaskRequests.add(0, taskRequest);
-				for (ProcessorTask request : newTaskRequests)
-					pendingTasksMap.put(request.getId(), request);
-			}
-			leasesQueue.drainTo(newLeases);
-			SchedulingResult schedulingResult = scheduler.scheduleOnce(new ArrayList<>(pendingTasksMap.values()),
-					newLeases);
-			// System.out.println("result=" + schedulingResult);
-			Map<String, VMAssignmentResult> resultMap = schedulingResult.getResultMap();
-			if (!resultMap.isEmpty()) {
-				for (VMAssignmentResult result : resultMap.values()) {
-					List<VirtualMachineLease> leasesUsed = result.getLeasesUsed();
-					List<Protos.TaskInfo> taskInfos = new ArrayList<>();
-					StringBuilder stringBuilder = new StringBuilder(
-							"Launching on VM " + leasesUsed.get(0).hostname() + " tasks ");
-					final Protos.SlaveID slaveId = leasesUsed.get(0).getOffer().getSlaveId();
-					for (TaskAssignmentResult t : result.getTasksAssigned()) {
-						stringBuilder.append(t.getTaskId()).append(", ");
-						taskInfos.add(getTaskInfo(slaveId, t));
-						// remove task from pending tasks map and put into
-						// launched tasks map
-						// (in real world, transition the task state)
-						pendingTasksMap.remove(t.getTaskId());
-						scheduler.getTaskAssigner().call(t.getRequest(), leasesUsed.get(0).hostname());
-						input.reportSubmitted(t.getTaskId(), leasesUsed.get(0).hostname());
-					}
-					List<Protos.OfferID> offerIDs = new ArrayList<>();
-					for (VirtualMachineLease l : leasesUsed)
-						offerIDs.add(l.getOffer().getId());
-					LOG.trace(stringBuilder.toString());
-					mesosSchedulerDriver.launchTasks(offerIDs, taskInfos);
-				}
-			}
+    public int join() {
+        Status s = mesosSchedulerDriver.join();
 
-			// insert a short delay before scheduling any new tasks or tasks
-			// from before that haven't been launched yet.
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException ie) {
-			}
-		}
-	}
+        return s.getNumber();
+    }
 
-	private Protos.TaskInfo getTaskInfo(Protos.SlaveID slaveID, final TaskAssignmentResult result) {
-		ProcessorTask t = (ProcessorTask) result.getRequest();
+    void runAll() {
+        System.out.println("Running Task Scheduler");
 
-		Protos.TaskID pTaskId = Protos.TaskID.newBuilder().setValue(t.getId()).build();
+        List<VirtualMachineLease> newLeases = new ArrayList<>();
+        while (true) {
+            if (isShutdown.get()) {
+                return;
+            }
+            newLeases.clear();
+            List<ProcessorTask> newTaskRequests = new ArrayList<>();
 
-		// DockerInfo docker = DockerInfo.newBuilder()
-		// .setImage(t.getProcessor().docker)
-		// .build();
-		//
-		// ContainerInfo container = ContainerInfo.newBuilder()
-		// .setDocker(docker)
-		// .setType(ContainerInfo.Type.DOCKER)
-		// .build();
+            // System.out.println("#Pending tasks: " + pendingTasksMap.size());
+            ProcessorTask taskRequest = null;
+            try {
+                taskRequest = pendingTasksMap.size() == 0 ? input.getTaskQueue().poll(5, TimeUnit.SECONDS)
+                        : input.getTaskQueue().poll(1, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ie) {
+                System.err.println("Error polling task queue: " + ie.getMessage());
+            }
+            if (taskRequest != null) {
+                input.getTaskQueue().drainTo(newTaskRequests);
+                newTaskRequests.add(0, taskRequest);
+                for (ProcessorTask request : newTaskRequests) {
+                    pendingTasksMap.put(request.getId(), request);
+                }
+            }
+            leasesQueue.drainTo(newLeases);
+            SchedulingResult schedulingResult = scheduler.scheduleOnce(new ArrayList<>(pendingTasksMap.values()),
+                    newLeases);
+            // System.out.println("result=" + schedulingResult);
+            Map<String, VMAssignmentResult> resultMap = schedulingResult.getResultMap();
+            if (!resultMap.isEmpty()) {
+                for (VMAssignmentResult result : resultMap.values()) {
+                    List<VirtualMachineLease> leasesUsed = result.getLeasesUsed();
+                    List<Protos.TaskInfo> taskInfos = new ArrayList<>();
+                    StringBuilder stringBuilder = new StringBuilder(
+                            "Launching on VM " + leasesUsed.get(0).hostname() + " tasks ");
+                    final Protos.SlaveID slaveId = leasesUsed.get(0).getOffer().getSlaveId();
+                    for (TaskAssignmentResult t : result.getTasksAssigned()) {
+                        stringBuilder.append(t.getTaskId()).append(", ");
+                        taskInfos.add(getTaskInfo(slaveId, t));
+                        // remove task from pending tasks map and put into
+                        // launched tasks map
+                        // (in real world, transition the task state)
+                        pendingTasksMap.remove(t.getTaskId());
+                        scheduler.getTaskAssigner().call(t.getRequest(), leasesUsed.get(0).hostname());
+                        input.reportSubmitted(t.getTaskId(), leasesUsed.get(0).hostname());
+                    }
+                    List<Protos.OfferID> offerIDs = new ArrayList<>();
+                    for (VirtualMachineLease l : leasesUsed) {
+                        offerIDs.add(l.getOffer().getId());
+                    }
+                    LOG.trace(stringBuilder.toString());
+                    mesosSchedulerDriver.launchTasks(offerIDs, taskInfos);
+                }
+            }
 
-		ExecutorID eid = ExecutorID.newBuilder().setValue(t.getId()).build();
+            // insert a short delay before scheduling any new tasks or tasks
+            // from before that haven't been launched yet.
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+            }
+        }
+    }
 
-		CommandInfo ci = CommandInfo.newBuilder().setValue(configuration.executorCommand).build();
+    private Protos.TaskInfo getTaskInfo(Protos.SlaveID slaveID, final TaskAssignmentResult result) {
+        ProcessorTask t = (ProcessorTask) result.getRequest();
 
-		ExecutorInfo executor = ExecutorInfo.newBuilder().setExecutorId(eid).setFrameworkId(frameworkId)
-				// .setContainer(container)
-				.setCommand(ci).build();
+        Protos.TaskID pTaskId = Protos.TaskID.newBuilder().setValue(t.getId()).build();
 
-		ByteString data = ByteString.copyFromUtf8(t.getMessage());
+        // DockerInfo docker = DockerInfo.newBuilder()
+        // .setImage(t.getProcessor().docker)
+        // .build();
+        //
+        // ContainerInfo container = ContainerInfo.newBuilder()
+        // .setDocker(docker)
+        // .setType(ContainerInfo.Type.DOCKER)
+        // .build();
+//
+//		ExecutorID eid = ExecutorID.newBuilder().setValue(t.getId()).build();
+//
+//		CommandInfo ci = CommandInfo.newBuilder().setValue(configuration.executorCommand).build();
+//
+//		ExecutorInfo executor = ExecutorInfo.newBuilder().setExecutorId(eid).setFrameworkId(frameworkId)
+//				// .setContainer(container)
+//				.setCommand(ci).build();
 
-		Label processorLabel = Label.newBuilder().setKey("processor").setValue(t.getProcessor().toJson())
-				.build();
+        ByteString data = ByteString.copyFromUtf8(t.getMessage());
 
-		Label messageLabel = Label.newBuilder().setKey("message").setValueBytes(data).build();
-		Labels labels = Labels.newBuilder().addLabels(processorLabel).addLabels(messageLabel).build();
+        Label processorLabel = Label.newBuilder()
+                .setKey("processor")
+                .setValue(t.getProcessor().toJson())
+                .build();
 
-		return Protos.TaskInfo.newBuilder().setName("task " + pTaskId.getValue()).setTaskId(pTaskId).setSlaveId(slaveID)
-				.setLabels(labels).setData(data)
-				.addResources(Protos.Resource.newBuilder().setName("cpus").setType(Protos.Value.Type.SCALAR)
-						.setScalar(Protos.Value.Scalar.newBuilder().setValue(t.getCPUs())))
-				.addResources(Protos.Resource.newBuilder().setName("mem").setType(Protos.Value.Type.SCALAR)
-						.setScalar(Protos.Value.Scalar.newBuilder().setValue(t.getMemory())))
-				// .setContainer(container)
-				// .setCommand(Protos.CommandInfo.newBuilder().setShell(false))
-				.setExecutor(executor).build();
-	}
+        Label messageLabel = Label.newBuilder().setKey("message").setValueBytes(data).build();
+        Labels labels = Labels.newBuilder().addLabels(processorLabel).addLabels(messageLabel).build();
 
-	public void setFrameworkId(FrameworkID value) {
-		this.frameworkId = value;
-	}
+        return Protos.TaskInfo.newBuilder().setName("task " + pTaskId.getValue()).setTaskId(pTaskId).setSlaveId(slaveID)
+                .setLabels(labels).setData(data)
+                .addResources(Protos.Resource.newBuilder().setName("cpus").setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(t.getCPUs())))
+                .addResources(Protos.Resource.newBuilder().setName("mem").setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(t.getMemory())))
+                // .setContainer(container)
+                // .setCommand(Protos.CommandInfo.newBuilder().setShell(false))
+                .setExecutor(executor).build();
+    }
 
-	public KafkaOutput getOutput() {
-		return output;
-	}
+    public void setFrameworkId(FrameworkID value) {
+        this.frameworkId = value;
+    }
+
+    public KafkaOutput getOutput() {
+        return output;
+    }
 }

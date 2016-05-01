@@ -7,6 +7,9 @@ import com.github.wtiger001.brigade.Processor;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
+import com.netflix.fenzo.functions.Func1;
+import com.netflix.fenzo.plugins.HostAttrValueConstraint;
+import java.util.ArrayList;
 
 public class ProcessorTask implements TaskRequest{
 	@Override
@@ -64,7 +67,15 @@ public class ProcessorTask implements TaskRequest{
 
 	@Override
 	public List<? extends ConstraintEvaluator> getHardConstraints() {
-		return Collections.emptyList();
+		List<ConstraintEvaluator> constraints = new ArrayList<>();
+                
+                if (p.attributeConstraints != null) {
+                    p.attributeConstraints.keySet().stream().forEach((k) -> {
+                        constraints.add(new HostAttrValueConstraint(k, (String t1) -> p.attributeConstraints.get(k)));
+                    });
+                }
+                
+                return constraints;
 	}
 
 	@Override

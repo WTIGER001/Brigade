@@ -1,9 +1,14 @@
 {
     "name": "SL NITF Metadata Extractor",
-    "input": "catalog.sl-nitf",
-    "output": "catalog.metadata",
+    "input": "catalog.file.id.sl-nitf",
+    "output": "catalog.meta.extracted",
     "error": "catalog.metadata.error",
     "docker": "docker.devlab.local/helloworld",
+    "constraints": {    
+        "attributes": {
+            "test":"test"
+        }
+    },
     "mem": "10",
     "cpus": "0.5",
     "volumes": [
