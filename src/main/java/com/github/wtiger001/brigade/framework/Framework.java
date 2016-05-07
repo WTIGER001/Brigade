@@ -146,12 +146,24 @@ public class Framework {
 
         // Build the executor
         CommandInfo ci = CommandInfo.newBuilder()
-                .setValue(configuration.executorCommand).build();
+                .setValue("java -jar /battalion-1.0-SNAPSHOT-jar-with-dependencies.jar").build();
+
+        Protos.ContainerInfo.DockerInfo di = Protos.ContainerInfo.DockerInfo.newBuilder()
+                .setImage("docker.devlab.local/battalion").build();
+
+        Protos.ContainerInfo coi = Protos.ContainerInfo.newBuilder()
+                .setType(Protos.ContainerInfo.Type.DOCKER)
+                .setDocker(di).build();
 
         executor = ExecutorInfo.newBuilder()
-                .setExecutorId(ExecutorID.newBuilder().setValue(configuration.frameworkName + " Soldier Executor"))
-//                .setFrameworkId(frameworkId)
-                .setCommand(ci).build();
+                .setExecutorId(ExecutorID.newBuilder().setValue(configuration.frameworkName + " Battalion Executor"))
+                //                .setFrameworkId(frameworkId)
+                .addResources(Protos.Resource.newBuilder().setName("cpus").setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(0.5)))
+                .addResources(Protos.Resource.newBuilder().setName("mem").setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(200)))
+                .setCommand(ci)
+                .setContainer(coi).build();
 
         // Build the Scheduler
         Scheduler mesosScheduler = new MesosScheduler(scheduler, leasesQueue, input, this);
@@ -279,7 +291,6 @@ public class Framework {
 //		ExecutorInfo executor = ExecutorInfo.newBuilder().setExecutorId(eid).setFrameworkId(frameworkId)
 //				// .setContainer(container)
 //				.setCommand(ci).build();
-
         ByteString data = ByteString.copyFromUtf8(t.getMessage());
 
         Label processorLabel = Label.newBuilder()

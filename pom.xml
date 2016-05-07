@@ -1,8 +1,20 @@
 <project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.wtiger001</groupId>
-  <artifactId>brigade</artifactId>
-  <version>1</version>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.wtiger001</groupId>
+    <artifactId>brigade</artifactId>
+    <version>1</version>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <dependencies>
         <dependency>
             <groupId>com.netflix.fenzo</groupId>
@@ -49,6 +61,7 @@
             <artifactId>slf4j-jdk14</artifactId>
             <version>1.7.20</version>
         </dependency>
+
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-bundle</artifactId>
@@ -68,6 +81,11 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java</artifactId>
+            <version>2.2.3</version>
         </dependency>
     </dependencies>
     <properties>
