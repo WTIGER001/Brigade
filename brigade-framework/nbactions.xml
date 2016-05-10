@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-jar-with-deps</actionName>
+            <displayName>jar-with-deps</displayName>
+            <goals>
+                <goal>assembly:single</goal>
+            </goals>
+        </action>
+        <action>
+            <actionName>CUSTOM-docker-build</actionName>
+            <displayName>docker-build</displayName>
+            <goals>
+                <goal>assembly:single</goal>
+                <goal>docker:build</goal>
+            </goals>
+            <properties>
+                <Env.DOCKER_HOST>tcp://localhost:2376</Env.DOCKER_HOST>
+            </properties>
+        </action>
+    </actions>

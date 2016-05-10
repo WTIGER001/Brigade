@@ -1,0 +1,61 @@
+
+{
+    "id": "/catalog/brigade",
+    "cpus": 2.0,
+    "mem": 512.0,
+    "portDefinitions": [
+        {
+            "port": 8080,
+            "protocol": "tcp",
+            "name": "http",
+            "labels": {
+                "VIP_0": "10.0.0.1:80"
+            }
+        }
+    ],
+    "requirePorts": false,
+    "instances": 1,
+    "executor": "",
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "docker.devlab.local/brigade",
+            "network": "HOST",
+            "privileged": false,
+            "forcePullImage": true
+        },
+        "volumes": [
+            {
+                "containerPath": "/shared/catalog",
+                "hostPath": "/shared/catalog",
+                "mode": "RO"
+            }
+        ]
+    },
+    "env": {
+        "EXECUTOR_CONFIG_LOCATION": "/shared/catalog/config/brigade/sl-nitf/executor.json",
+        "PROCESSOR_CONFIG_LOCATION": "/shared/catalog/config/brigade/sl-nitf/processor.json",
+        "kAFKA_ENDPOINT": "node3:31000",
+        "MESOS_MASTER_ENDPOINT": "zk://master1:2181/mesos",
+        "FRAMEWORK_NAME": "BrigadeProc"
+    },
+    "healthChecks": [
+        {
+            "protocol": "HTTP",
+            "path": "/status",
+            "gracePeriodSeconds": 3,
+            "intervalSeconds": 10,
+            "port": 8080,
+            "timeoutSeconds": 5,
+            "maxConsecutiveFailures": 3
+        }
+    ],
+    "backoffSeconds": 1,
+    "backoffFactor": 1.15,
+    "maxLaunchDelaySeconds": 3600,
+    "upgradeStrategy": {
+        "minimumHealthCapacity": 0.5,
+        "maximumOverCapacity": 0.2
+    }
+}
+

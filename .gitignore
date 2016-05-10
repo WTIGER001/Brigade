@@ -12,3 +12,6 @@
 hs_err_pid*
 /bin/
 /target/
+/brigade/.nb-gradle/
+/brigade-common/target/
+/brigade-framework/target/

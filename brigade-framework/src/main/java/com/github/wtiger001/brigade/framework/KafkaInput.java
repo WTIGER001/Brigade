@@ -1,0 +1,246 @@
+package com.github.wtiger001.brigade.framework;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.mesos.Protos.TaskStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.github.wtiger001.brigade.Configuration;
+import com.github.wtiger001.brigade.Processor;
+import java.util.Arrays;
+import javax.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * Source of all tasks. This class connects to a Kafka Topic and places tasks in
+ * a FIFO queue to be consumed by the Framework. The configuration for this
+ * class determines how many messages are kept
+ */
+@Component
+public class KafkaInput implements Runnable, ConsumerRebalanceListener, OffsetCommitCallback {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaInput.class);
+
+    @Autowired
+    private Processor processor;
+
+    @Autowired
+    private Configuration configuration;
+    
+    @Autowired
+    private Framework framework;
+    
+    private static final int KAFKA_POLL_INTERVAL = 100;
+    private Map<TopicPartition, OffsetAndMetadata> updates;
+    private BlockingQueue<ProcessorTask> taskQueue;
+    private KafkaConsumer<String, String> consumer;
+    private String topic;
+    private AtomicBoolean isShutdown;
+    private final int maxSize = 100;
+    private final int sleepMs = 100;
+    
+    private KafkaTopicTracker tracker;
+
+    public Processor getProcessor() {
+        return processor;
+    }
+
+    public KafkaTopicTracker getTracker() {
+        return tracker;
+    }
+
+    
+    
+    @PostConstruct
+    public void init() {
+        this.topic = processor.getInputTopic();
+        this.taskQueue = new LinkedBlockingQueue<>();
+        this.isShutdown = new AtomicBoolean(false);
+        this.updates = new ConcurrentHashMap<>();
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", configuration.getKafkaEndpoint());
+        props.put("group.id", configuration.getFrameworkName() + "-" + topic + "-" + processor.getName());
+        props.put("enable.auto.commit", "false");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("session.timeout.ms", "30000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        LOG.info("Connecting to Kafka topic: " + processor.getInputTopic());
+        this.consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Arrays.asList(topic), this);
+        this.tracker = new KafkaTopicTracker(topic, this);
+    }
+    
+    public void shutdown() {
+        isShutdown.set(true);
+        consumer.wakeup();
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            // Check for shutdown
+            if (isShutdown.get()) {
+                return;
+            }
+
+            // Update Kakfa with messages
+            if (!updates.isEmpty()) {
+                consumer.commitAsync(updates, this);
+                updates.clear();
+            }
+
+            // Check size
+            if (taskQueue.size() < maxSize) {
+
+                // Get from Kafka
+                ConsumerRecords<String, String> records = consumer.poll(KAFKA_POLL_INTERVAL);
+                LOG.trace("Found: " + records.count());
+
+                for (ConsumerRecord<String, String> record : records) {
+                    // Generate the task Id
+                    String id = genTaskId(record, processor);
+
+                    // Report the task received
+                    tracker.reportReceived(
+                            new TopicPartition(record.topic(), record.partition()),
+                            record.offset(), id);
+
+                    // Convert to a Task
+                    ProcessorTask taskRequest = new ProcessorTask(processor, id, record.value());
+
+                    // Add to the queue
+                    taskQueue.offer(taskRequest);
+                }
+            } else {
+                LOG.trace("Queue is full... Waiting a little bit");
+                try {
+                    Thread.sleep(sleepMs);
+                } catch (InterruptedException ie) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private static String genTaskId(ConsumerRecord<String, String> record,
+            Processor p) {
+        return p.getName() + "_" + record.topic() + "_" + record.partition() + "_" + record.offset();
+    }
+
+    public void updateStatus(TaskStatus status) {
+        switch (status.getState()) {
+            case TASK_ERROR:
+                tracker.reportError(status.getTaskId().getValue());
+
+                String erresponse = status.getMessage();
+                LOG.error("RECEIVED ERROR RESPONSE ");
+                LOG.error(erresponse);
+
+                framework.getOutput().postError(erresponse);
+
+                break;
+            case TASK_FAILED:
+                tracker.reportFailure(status.getTaskId().getValue());
+                
+                String failResponse = status.getMessage();
+                LOG.error("RECEIVED ERROR RESPONSE ");
+                LOG.error(failResponse);
+
+                framework.getOutput().postError(failResponse);
+                break;
+            case TASK_FINISHED:
+                tracker.reportDone(status.getTaskId().getValue());
+
+                String response = status.getData().toStringUtf8();
+                LOG.trace("RECEIVED RESPONSE ");
+                LOG.trace(response);
+
+                framework.getOutput().post(response);
+
+                break;
+            case TASK_LOST:
+                //TODO Put at the front of the queue
+                LOG.warn("TASK LOST {}", status.getTaskId().getValue());
+                break;
+            default:
+                break;
+        }
+    }
+
+    public BlockingQueue<ProcessorTask> getTaskQueue() {
+        return taskQueue;
+    }
+
+    public String getHost(String taskId) {
+        return tracker.getHost(taskId);
+    }
+
+    public void reportReceived(TopicPartition tp, long offset, String taskId) {
+        tracker.reportReceived(tp, offset, taskId);
+    }
+
+    public void reportSubmitted(String taskId, String hostname) {
+        tracker.reportSubmitted(taskId, hostname);
+    }
+
+    @Override
+    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+        LOG.info("onPartitionsRevoked");
+        for (TopicPartition p : partitions) {
+            LOG.info("\t" + p.topic() + "\t" + p.partition());
+        }
+        tracker.revokeTopics(partitions);
+    }
+
+    @Override
+    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        // TODO Auto-generated method stub
+        LOG.info("onPartitionsAssigned");
+        for (TopicPartition p : partitions) {
+            LOG.info("\t" + p.topic() + "\t" + p.partition());
+        }
+        tracker.updateTopics(partitions);
+    }
+
+    public void addUpdate(TopicPartition partition, OffsetAndMetadata offset) {
+        updates.put(partition, offset);
+    }
+
+    @Override
+    public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets, Exception exception) {
+        if (exception != null) {
+            LOG.warn("EXCEPTION: " + exception.getMessage());
+        }
+
+        for (Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
+            LOG.trace("Offsets updated! " + entry.getKey().topic() + "-" + entry.getKey().partition() + " offset: " + entry.getValue().offset());
+            tracker.updateOffset(entry.getKey(), entry.getValue());
+        }
+    }
+
+    public KafkaConsumer<String, String> getConsumer() {
+        return consumer;
+    }
+
+}

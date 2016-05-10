@@ -1,0 +1,9 @@
+{
+    "dockerImage": "docker.devlab.local/battalion:latest",
+    "memory": "200",
+    "cpus": "0.5",
+    "forcePull": "true",
+    "env": [
+        "MESOS_NATIVE_JAVA_LIBRARY=/usr/lib/libmesos.so"
+    ]
+}
